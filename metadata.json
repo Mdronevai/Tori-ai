@@ -1,0 +1,6 @@
+{
+  "name": "Tori",
+  "description": "Local-first personal vault and AI assistant. Secure passwords, notes, tasks, and queries with zero unconfirmed actions.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
