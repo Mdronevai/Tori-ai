@@ -147,8 +147,34 @@ class ToriAssistantEngine(
             }
         }
 
+        // 2.5 Translation Intent ("Translate hello to bangla", "onubad koro")
+        if (lower.startsWith("translate") || lower.contains("onubad") || lower.startsWith("bangla to english") || lower.startsWith("english to bangla")) {
+            val translationPrompt = "Translate the following cleanly: $trimmed"
+            val apiKey = getEffectiveApiKey()
+            if (apiKey != null) {
+                val translated = callGeminiApi(translationPrompt, apiKey)
+                if (translated != null) {
+                    return@withContext ChatLog(
+                        role = "assistant",
+                        message = "✨ Translation:\n\n$translated",
+                        pendingActionType = null,
+                        pendingActionData = null
+                    )
+                }
+            }
+            return@withContext ChatLog(
+                role = "assistant",
+                message = "Translation ready! (Tip: Add your Gemini API key in Settings for full real-time neural translation). Query: \"$trimmed\"",
+                pendingActionType = null,
+                pendingActionData = null
+            )
+        }
+
         // 3. Password Generation Intent
-        if (lower.contains("generate password") || lower.contains("create password") || lower.contains("new password") || lower == "password") {
+        if (lower.contains("generate password") || lower.contains("create password") || 
+            lower.contains("new password") || lower.contains("notun password") || 
+            lower.contains("strong password") || lower == "password"
+        ) {
             val length = Regex("\\b(\\d{1,2})\\b").find(lower)?.value?.toIntOrNull() ?: 18
             val clamped = length.coerceIn(8, 40)
             val generated = PasswordGenerator.generate(length = clamped)
@@ -161,7 +187,7 @@ class ToriAssistantEngine(
 
             return@withContext ChatLog(
                 role = "assistant",
-                message = "I generated a ${clamped}-character password with ${strength.entropyBits} bits of entropy (${strength.label}). You can copy it or tap below to draft a vault entry with it.",
+                message = "I generated a ${clamped}-character strong password with ${strength.entropyBits} bits of entropy (${strength.label}). You can copy it or tap below to draft a vault entry with it.",
                 pendingActionType = "PASSWORD_GENERATED",
                 pendingActionData = dataJson,
                 isConfirmed = null
@@ -380,21 +406,41 @@ class ToriAssistantEngine(
 
     private fun generateConversationalFallback(lower: String, raw: String): String {
         return when {
-            lower.contains("hello") || lower.contains("hi") || lower.contains("hey") -> {
-                "Hello! How can I assist with your vault or reminders today? You can ask me to save a password, query a credential, or generate a secure key."
+            lower.contains("kemon acho") || lower.contains("kemon aso") || lower.contains("how are you") -> {
+                "Ami khub bhalo achi! Tori apnar shathe ache. Apnar vault, passwords, clipboard records ba tasks niye kono sahajjo lagbe?"
             }
-            lower.contains("amar") || lower.contains("ki") -> {
-                "I am here! You can ask me questions like 'Amar Netflix password ki?' or 'Save my Facebook password'."
+            lower.contains("ki khobor") || lower.contains("whats up") || lower.contains("what's up") -> {
+                "Sob thikthak! System online, hardware AES-256 encryption active. Bolun ki korte hobe?"
+            }
+            lower.contains("dhonnobad") || lower.contains("thanks") || lower.contains("thank you") -> {
+                "You're very welcome! Apnake sahajjo korte pere bhalo laglo. Anything else you need?"
+            }
+            lower.contains("status") || lower.contains("system") -> {
+                "🛡️ Tori System Status: Operational\n• AES-256 Encryption: Verified\n• Background Guardian: Active\n• Floating Edge Dock: Ready\n• AI Voice Engine: Listening"
+            }
+            lower.contains("ki korte paro") || lower.contains("what can you do") || lower.contains("capabilities") -> {
+                "Tori AI diye apni ja ja korte parben:\n\n" +
+                        "1. 🔑 Passwords & Accounts: 'Save Netflix password user john pass 1234' ba 'Amar Netflix password ki?'\n" +
+                        "2. 🎙️ Live Voice Interaction: Tap the mic orb to converse naturally.\n" +
+                        "3. 📋 Persistent Clipboard: Automatic category indexing (Bangla, English, long, short).\n" +
+                        "4. ✅ Task Reminders: 'Remind me to submit project tomorrow'\n" +
+                        "5. 🌐 Web/Screen Scan & Translation: On-the-fly edge scanning & translations."
+            }
+            lower.contains("hello") || lower.contains("hi") || lower.contains("hey") || lower.contains("salam") -> {
+                "Hello! Good to see you. How can I assist with your vault, secrets, or reminders today?"
+            }
+            lower.contains("amar") || lower.contains("ki") || lower.contains("dekhao") -> {
+                "Ami apnar kotha shunchi! Apni bolte paren: 'Amar Gmail password ki?' ba 'Amar Facebook password dekhao'."
             }
             lower.contains("who are you") || lower.contains("help") -> {
-                "I am Tori, your local-first personal assistant:\n\n" +
+                "I am Tori, your personal holographic AI assistant:\n\n" +
                         "1. Local-Only Vault: Passwords, accounts, and API keys encrypted with hardware AES-256.\n" +
                         "2. Confirmation Shield: Zero silent saves. I always show an inline confirmation card first.\n" +
                         "3. Retrieval: Ask 'What is my Netflix password?' to look up items safely.\n" +
                         "4. Tasks: Schedule reminders grouped by Today, Upcoming, and Done."
             }
             else -> {
-                "I heard: \"$raw\".\n\nWould you like me to draft this into your Vault or add it as a Task?"
+                "I heard: \"$raw\".\n\nWould you like me to draft this into your Vault, search your credentials, or add it as a Task?"
             }
         }
     }

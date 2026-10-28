@@ -287,6 +287,23 @@ fun SettingsScreen(
                     Settings.canDrawOverlays(context)
                 } else true
 
+                val overlayPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                    contract = androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+                ) {
+                    val granted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        Settings.canDrawOverlays(context)
+                    } else true
+
+                    if (granted) {
+                        floatingSidebarActive = true
+                        securityPrefs.isFloatingSidebarEnabled = true
+                        onToggleFloatingSidebar?.invoke(true)
+                        onShowSnackbar("Overlay permission granted! Floating Sidebar activated.")
+                    } else {
+                        onShowSnackbar("Overlay permission is required to float over other apps.")
+                    }
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -306,10 +323,11 @@ fun SettingsScreen(
                             onClick = {
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                                     val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))
-                                    context.startActivity(intent)
+                                    overlayPermissionLauncher.launch(intent)
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = ToriCyan, contentColor = Color.Black)
+                            colors = ButtonDefaults.buttonColors(containerColor = ToriCyan, contentColor = Color.Black),
+                            modifier = Modifier.testTag("grant_overlay_permission_button")
                         ) {
                             Text("Grant")
                         }
@@ -331,6 +349,7 @@ fun SettingsScreen(
                     }
                 }
             }
+
         }
 
         // Section: Category Auto-Detection & Capture Toggles
